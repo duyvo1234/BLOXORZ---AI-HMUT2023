@@ -34,27 +34,27 @@ class AlgorithmMenu():
 
         def run_algorithm(self, problem):
             if  self.algorithm == "DFS":
-                [self.goal_node, self.explored_ordered, self.timeMS] = depth_first_graph_search(problem)
+                [self.goal_node, self.explored_ordered, self.timeMS, self.memUsg] = depth_first_graph_search(problem)
             elif self.algorithm == "BFS":
-                [self.goal_node, self.explored_ordered, self.timeMS] = breadth_first_graph_search(problem)
+                [self.goal_node, self.explored_ordered, self.timeMS, self.memUsg] = breadth_first_graph_search(problem)
             elif self.algorithm == "Iterative DFS":
-                [self.goal_node, self.explored_ordered, self.timeMS] = iterative_deepening_search(problem)
+                [self.goal_node, self.explored_ordered, self.timeMS, self.memUsg] = iterative_deepening_search(problem)
             elif self.algorithm == "Uniform Cost Search":
-                [self.goal_node, self.explored_ordered, self.timeMS] = uniform_cost_search(problem)
+                [self.goal_node, self.explored_ordered, self.timeMS, self.memUsg] = uniform_cost_search(problem)
             elif self.algorithm == "A* #H1":
-                [self.goal_node, self.explored_ordered, self.timeMS] = astar_search(problem, problem.h1)
+                [self.goal_node, self.explored_ordered, self.timeMS, self.memUsg] = astar_search(problem, problem.h1)
             elif self.algorithm == "A* #H2":
-                [self.goal_node, self.explored_ordered, self.timeMS] = astar_search(problem, problem.h2)
+                [self.goal_node, self.explored_ordered, self.timeMS, self.memUsg] = astar_search(problem, problem.h2)
             elif self.algorithm == "A* #H3":
-                [self.goal_node, self.explored_ordered, self.timeMS] = astar_search(problem, problem.h3)
+                [self.goal_node, self.explored_ordered, self.timeMS, self.memUsg] = astar_search(problem, problem.h3)
             elif self.algorithm == "Best First Search #H1":
-                [self.goal_node, self.explored_ordered, self.timeMS] = best_first_graph_search(problem, problem.h1)
+                [self.goal_node, self.explored_ordered, self.timeMS, self.memUsg] = best_first_graph_search(problem, problem.h1)
             elif self.algorithm == "Best First Search #H2":
-                [self.goal_node, self.explored_ordered, self.timeMS] = best_first_graph_search(problem, problem.h2)
+                [self.goal_node, self.explored_ordered, self.timeMS, self.memUsg] = best_first_graph_search(problem, problem.h2)
             elif self.algorithm == "Best First Search #H3":
-                [self.goal_node, self.explored_ordered, self.timeMS] = best_first_graph_search(problem, problem.h3)
+                [self.goal_node, self.explored_ordered, self.timeMS, self.memUsg] = best_first_graph_search(problem, problem.h3)
             elif self.algorithm == "Monte Carlo":
-                [self.goal_node, self.explored_ordered, self.timeMS] = monte_carlo_tree_search(problem)
+                [self.goal_node, self.explored_ordered, self.timeMS, self.memUsg] = monte_carlo_tree_search(problem)
             else:
                 raise NotImplementedError 
             if self.goal_node is not None:
@@ -109,6 +109,7 @@ class AlgorithmMenu():
                                     self.run_algorithm(Bloxorz(x))
                                     time_solved_ms += self.timeMS
                                 print("Completed in: {0:.3f}ms (avg 5 times)".format(time_solved_ms / 5))
+                                print("Solved in: {0:.3f}ms".format(self.memUsg))
                         self.ESC = True
 
         
@@ -142,6 +143,9 @@ class AlgorithmMenu():
             # Nodes Explored
             text = self.medium_font.render("Nodes explored: {}".format(len(self.explored_ordered)), 230, (255, 255, 255))
             text_rect = text.get_rect(center=(self.W_WIDTH_SIZE/2, 300))
+            self.surface.blit(text, text_rect)
+            text = self.medium_font.render("Memmory Peak: {:.3f}MB".format(self.memUsg), 230, (255, 255, 255))
+            text_rect = text.get_rect(center=(self.W_WIDTH_SIZE/2, 400))
             self.surface.blit(text, text_rect)
             if self.solution_cost is not None:
                 # Time to Solve

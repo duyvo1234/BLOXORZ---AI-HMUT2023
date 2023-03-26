@@ -122,7 +122,7 @@ algorithms_select_menu.add_selector('Map', MAP_MENU_ARRAY,
                                         onchange=change_map)
 
 algorithms_select_menu.add_selector('Algorithm', 
-                                        [('Monte Carlo', 'Monte Carlo'),('DFS', 'DFS'), ('BFS', 'BFS'), ('Iterative DFS', 'Iterative DFS'), ('Uniform Cost Search', 'Uniform Cost Search'), ('Best First Search #H1', 'Best First Search #H1') , ('Best First Search #H2', 'Best First Search #H2') , ('Best First Search #H3', 'Best First Search #H3'), ('A* #H1', 'A* #H1'), ('A* #H2', 'A* #H2') , ('A* #H3', 'A* #H3')],
+                                        [('DFS', 'DFS'), ('BFS', 'BFS'), ('Iterative DFS', 'Iterative DFS'), ('Uniform Cost Search', 'Uniform Cost Search'), ('Best First Search #H1', 'Best First Search #H1') , ('Best First Search #H2', 'Best First Search #H2') , ('Best First Search #H3', 'Best First Search #H3'), ('A* #H1', 'A* #H1'), ('A* #H2', 'A* #H2') , ('A* #H3', 'A* #H3'),('Monte Carlo', 'Monte Carlo')],
                                         onreturn=None,
                                         onchange=change_algorithm)
 

@@ -3,50 +3,77 @@ from collections import defaultdict
 import random
 import numpy as np
 
+class MonteCarloTreeSearch(object):
+
+    def __init__(self, node, problem):
+        self.root = node
+        self.problem = problem
+        self.root._update_untried_children(problem)
+
+    def best_action(self, simulations_number=None):
+        for _ in range(0, simulations_number):
+            visited = []
+            trvNode = self.root
+            # selection
+            while trvNode._untried_children == [] and trvNode.children != []:
+                trvNode = trvNode.bestChild()
+                trvNode._update_untried_children(self.problem)
+            # expansion
+            if trvNode._untried_children != []:
+                m = random.choice(trvNode._untried_children)
+                trvNode = trvNode.add_child(m)
+            # rollout
+            should_stop = False
+            while trvNode.expand(self.problem) != [] and not should_stop:
+                choices = list(set(trvNode.expand(self.problem)) - set(visited))
+                if choices != []:
+                    trvNode = random.choice(choices)
+                    visited.append(trvNode)
+                else:
+                    should_stop = True
+            
+            prvNode = self.problem.h1(trvNode)
+            # backpropagate
+            while trvNode != None:
+                result = self.problem.h1(trvNode)
+                trvNode.backpropagate(-result)
+                # prvNode = result
+                trvNode = trvNode.parent
+            
+        # select most visited child
+        return sorted(self.root.children, key = lambda c: c.visits)[-1]
+
 class MonteNode(Node):
-    def __init__(self, state, parent=None, action=None, path_cost=0):
+    def __init__(self,state, parent=None, action=None, path_cost=0):
         super().__init__(state, parent, action, path_cost)
-        self.number_of_visit = 0
-        self.value = 0
-        self.tried_state = []
-        self.child = []
+        self._untried_children = None
+        self.children = []
+        self.wins = 0
+        self.visits = 0
 
-    def is_fully_expanded(self):
-        return len(self.untried_move) == 0
+    def _update_untried_children(self, problem):
+        self._untried_children = self.expand(problem)
+
+    def bestChild(self):
+        s = sorted(self.children, key = lambda c: c.wins/c.visits + np.sqrt(2*np.log(self.visits)/c.visits))[-1]
+        return s
     
-    def get_child(self, problem):
-        self.child = self.expand(problem)
+    def add_child(self, child):
+        self.children.append(child)
+        self._untried_children.remove(child)
+        return child
 
-    def is_state_tried(self, state):
-        return state in self.tried_state
-    
-    def rollout(self, problem, state):
-        rollout_node = MonteNode(state)
-        while not problem.goal_test(rollout_node) and not self.is_state_tried(rollout_node.state):
-            rollout_node.get_child(problem)
-            rollout_node = random.choice(rollout_node.child)
+    def expand(self, problem):
+        return [self._child_node(problem, action)
+        for action in problem.actions(self.state)]
 
-        if problem.goal_test(rollout_node):
-            return 1
-        else:
-            return 0
+    def _child_node(self, problem, action):
+        next_state = problem.result(self.state, action)
+        next_node = MonteNode(next_state, self, action,
+                    problem.path_cost(self.path_cost, self.state,
+                                      action, next_state))
+        return next_node
     
     def backpropagate(self, result):
-        while self.parent != None:
-            self.value += result
-            self.number_of_visit += 1
-            self.parent.backpropagate(result)
-
-    def bestChild(self, c_param=1.4):
-        choices = [
-            (c.value/c.number_of_visit) + c_param * np.sqrt((2*np.log(self.number_of_visit) / c.number_of_visit))
-            for c in self.child
-        ]
-        return self.child[np.argmax(choices)]
-
-
-
-    
-    
-    
-
+        self.wins += result
+        self.visits += 1

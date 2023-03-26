@@ -1,12 +1,13 @@
 # Adapted from https://github.com/aimacode/aima-python/blob/master/search.py
 from .node import Node
-from .monteCarlo import MonteNode
+from .monteCarlo import MonteNode, MonteCarloTreeSearch
 from collections import deque
 from timeit import default_timer as timer
 from datetime import timedelta
 from .utils import (PriorityQueue, memoize)
 import sys
 import random
+import tracemalloc
 
 def depth_first_graph_search(problem):
     # Return variables
@@ -14,6 +15,7 @@ def depth_first_graph_search(problem):
     explored_ordered = []
     # Problem Solving
     start = timer()
+    tracemalloc.start()
     frontier = [(Node(problem.initial))]  # Stack
     explored = set()
     while frontier:
@@ -25,9 +27,11 @@ def depth_first_graph_search(problem):
         frontier.extend(child for child in node.expand(problem)
                         if child.state not in explored and
                         child not in frontier)
-    # 
+    #
+    t, p = tracemalloc.get_traced_memory()
+    memUsg = p/(1024*1024)
     end = timer()
-    return [goal, explored_ordered, timedelta(seconds=end-start).total_seconds() * 1000]
+    return [goal, explored_ordered, timedelta(seconds=end-start).total_seconds() * 1000, memUsg]
 
 
 def breadth_first_graph_search(problem):
@@ -36,6 +40,7 @@ def breadth_first_graph_search(problem):
     explored_ordered = []
     # Problem Solving
     start = timer()
+    tracemalloc.start()
     node = Node(problem.initial)
     if problem.goal_test(node.state):
         return node
@@ -54,8 +59,10 @@ def breadth_first_graph_search(problem):
                     break
                 frontier.append(child)
     # 
+    t, p = tracemalloc.get_traced_memory()
+    memUsg = p/(1024*1024)
     end = timer()
-    return [goal, explored_ordered, timedelta(seconds=end-start).total_seconds() * 1000]
+    return [goal, explored_ordered, timedelta(seconds=end-start).total_seconds() * 1000, memUsg]
 
 def depth_limited_search(problem, limit=50):
     # Return variables
@@ -87,6 +94,7 @@ def iterative_deepening_search(problem):
     explored_ordered = []
     # Problem Solving
     start = timer()
+    tracemalloc.start()
     for depth in range(13):
         [result, explored_ordered_ins] = depth_limited_search(problem, depth)
         explored_ordered.extend(explored_ordered_ins)
@@ -94,8 +102,10 @@ def iterative_deepening_search(problem):
             goal = result
             break
     
+    t, p = tracemalloc.get_traced_memory()
+    memUsg = p/(1024*1024)
     end = timer()
-    return [goal, explored_ordered, timedelta(seconds=end-start).total_seconds() * 1000]
+    return [goal, explored_ordered, timedelta(seconds=end-start).total_seconds() * 1000, memUsg]
 
 def best_first_graph_search(problem, f):
     # Return variables
@@ -103,6 +113,7 @@ def best_first_graph_search(problem, f):
     explored_ordered = []
     # Problem Solving
     start = timer()
+    tracemalloc.start()
     f = memoize(f, 'f')
     node = Node(problem.initial)
     frontier = PriorityQueue('min', f)
@@ -122,8 +133,10 @@ def best_first_graph_search(problem, f):
                 if f(child) < frontier[child]:
                     del frontier[child]
                     frontier.append(child)
+    t, p = tracemalloc.get_traced_memory()
+    memUsg = p/(1024*1024)
     end = timer()
-    return [goal, explored_ordered, timedelta(seconds=end-start).total_seconds() * 1000]
+    return [goal, explored_ordered, timedelta(seconds=end-start).total_seconds() * 1000, memUsg]
 
 
 def uniform_cost_search(problem):
@@ -136,6 +149,7 @@ def bidirectional_search(problem):
     goal = None
     explored_ordered = []
     start = timer()
+    tracemalloc.start()
     #
     e = 1 #problem.find_min_edge() -> All edge costs are 1.
     gF, gB = {problem.initial : 0}, {problem.goal : 0}
@@ -211,38 +225,37 @@ def bidirectional_search(problem):
             # Extend backward
             U, openB, closedB, gB = extend(U, openB, openF, gB, gF, closedB)
 
+    t, p = tracemalloc.get_traced_memory()
+    memUsg = p/(1024*1024)
     end = timer()
     return [openB[0], explored_ordered, timedelta(seconds=end-start).microseconds / 1000]
 
 def astar_search(problem, h):
     return best_first_graph_search(problem, lambda n: n.path_cost + h(n))
 
-def monte_carlo_tree_search(problem, limit=100):
+def monte_carlo_tree_search(problem, limit=5):
     goal = None
     explored_ordered = []
+    visited = set()
     start = timer()
-    rootNode = MonteNode(problem.initial)
-    node = rootNode
-
-    while not problem.goal_test(node.state):
-        explored_ordered.append(node)
-        for _ in range(0, limit):            
-            # _tree policy
-            node.get_child(problem)
-            if node.child != []:
-                untried_node = list(set(node.child) - set(explored_ordered))
-                if untried_node != []:
-                    node = random.choice(untried_node)
-
-            # roll out
-            currentState = node.state
-            result = node.rollout(problem, currentState)
-
-            # update value
-            node.backpropagate(result)
-        # get maximum value node        
-        node = node.bestChild(c_param=0)
+    tracemalloc.start()
+    node = MonteNode(problem.initial)
+    if problem.goal_test(node.state):
+        return node
+    frontier = [node]
+    while frontier:
+        root = frontier.pop()
+        explored_ordered.insert(len(explored_ordered), root)
+        if problem.goal_test(root.state):
+            goal = root
+            break
+        mcts = MonteCarloTreeSearch(root, problem)  
+        node = mcts.best_action(limit)
+        # if root not in visited:
+        #     visited.add(root)
+        frontier.append(node)
         # play move
-    goal = node
+    t, p = tracemalloc.get_traced_memory()
+    memUsg = p/(1024*1024)
     end = timer()
-    return [goal, explored_ordered, timedelta(seconds=end-start).total_seconds() * 1000]
+    return [goal, explored_ordered, timedelta(seconds=end-start).total_seconds() * 1000, memUsg]
